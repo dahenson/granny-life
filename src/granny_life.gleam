@@ -124,7 +124,13 @@ fn prepend_cell_rects(cell, cell_index, row_index, acc) {
       NorthSouth,
       cell_width,
     ),
-    cell_rect(cell, -ewx - cell_height - 5, -ewy - cell_width, EastWest, cell_width),
+    cell_rect(
+      cell,
+      -ewx - cell_height - 5,
+      -ewy - cell_width,
+      EastWest,
+      cell_width,
+    ),
     ..acc
   ]
 }
