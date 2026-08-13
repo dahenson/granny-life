@@ -164,11 +164,7 @@ fn create_next_gen(
     [_] -> list.reverse(next)
     [_first, _second] -> list.reverse(next)
     [first, second, last] ->
-      create_next_gen([], [
-        last,
-        next_gen_row(first, second, last),
-        ..next
-      ])
+      create_next_gen([], [last, next_gen_row(first, second, last), ..next])
     [[_first] as first, second, third, ..rest] ->
       create_next_gen([second, third, ..rest], [
         next_gen_row(first, second, third),
