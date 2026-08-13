@@ -62,7 +62,7 @@ fn previous_generation(model: Model) -> Model {
 
 fn create_previous_generation(model: Model) -> Model {
   let generation = model.generation - 1
-  let quadrant = square.nth_generation(model.quadrant, generation)
+  let quadrant = square.nth_generation(square.granny_life_gen_0, generation)
 
   Model(generation, quadrant, square.alive_percentage(quadrant))
 }
