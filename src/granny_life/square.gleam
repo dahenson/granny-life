@@ -224,8 +224,3 @@ fn expand_first_row(first: List(Cell), second: List(Cell)) -> List(Cell) {
     _ -> []
   }
 }
-
-fn create_final_row(current_row: List(Cell), cell_type: Cell) -> List(Cell) {
-  let length = list.length(current_row) + 2
-  list.repeat(cell_type, times: length)
-}

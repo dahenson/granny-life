@@ -147,12 +147,11 @@ fn cell_rect(
     attribute.attribute("rx", "3"),
     attribute.attribute("ry", "3"),
     attribute.classes(cell_class(cell)),
-    ..cell_attributes(cell, dim, direction)
+    ..cell_attributes(dim, direction)
   ])
 }
 
 fn cell_attributes(
-  cell: Cell,
   dim: Int,
   direction: Direction,
 ) -> List(attribute.Attribute(Message)) {

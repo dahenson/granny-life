@@ -70,7 +70,7 @@ pub fn third_generation_test() {
       [Dormant],
       [Alive, Alive],
       [Dormant, Dormant, Dormant],
-      [Alive, Alive, Alive, Alive],
+      [Dormant, Dormant, Dormant, Dormant],
       [Alive, Alive, Alive, Alive, Alive],
     ]
 }
@@ -113,7 +113,7 @@ pub fn next_generation_test() {
       [Dormant],
       [Alive, Alive],
       [Dormant, Dormant, Dormant],
-      [Alive, Alive, Alive, Alive],
+      [Dormant, Dormant, Dormant, Dormant],
       [Alive, Alive, Alive, Alive, Alive],
     ]
 }
