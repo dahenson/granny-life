@@ -1,14 +1,18 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
 .granny-square {
 }
 
 .cell {
-  stroke: blue;
+
 }
 
 .alive {
-  fill: white;
 }
 
 .dormant {
-  fill: teal;
 }

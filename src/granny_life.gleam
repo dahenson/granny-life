@@ -71,111 +71,107 @@ fn view(model: Model) -> Element(Message) {
   let generation = int.to_string(model.generation)
   let alive_percent = model.alive_percent |> float.round() |> int.to_string()
 
-  html.main([attribute.class("container")], [
-    html.h1([], [
-      html.text("Rule 6, Generation " <> generation),
+  html.main([attribute.class("container mx-auto max-w-xl")], [
+    html.h1([attribute.class("m-2 text-3xl")], [
+      html.text("Granny Life Motif")
+    ]),
+    html.div([attribute.class("flex flex-row text-lg")], [
+      html.div([
+        attribute.class("flex-auto p-2 m-2 rounded-md bg-slate-700")
+      ], [html.text("Generation " <> generation)]),
+      html.div([
+        attribute.class("flex-auto p-2 m-2 rounded-md bg-slate-700")
+      ], [html.text(alive_percent <> "% alive")]),
+      html.div([
+        attribute.class("flex-auto p-2 m-2 rounded-md bg-slate-700")
+      ], [html.text("?? color changes")]),
     ]),
     html.div([], [granny_square(model)]),
-    html.div([], [html.text(alive_percent <> "% alive")]),
-    html.div([], [
-      html.button([event.on_click(UserClickedPreviousGen)], [
-        html.text("Previous"),
-      ]),
-      html.button([event.on_click(UserClickedResetGen)], [html.text("Reset")]),
-      html.button([event.on_click(UserClickedNextGen)], [html.text("Next")]),
+    html.div([attribute.class("flex flex-row")], [
+      button("Previous", UserClickedPreviousGen),
+      button("Reset", UserClickedResetGen),
+      button("Next", UserClickedNextGen),
     ]),
   ])
+}
+
+fn button(text: String, message: Message) -> Element(Message) {
+      html.button(
+        [
+          attribute.class("flex-auto p-2 m-2 border-2 rounded-md bg-sky-500 border-sky-400"),
+          event.on_click(message),
+        ],
+        [
+          html.text(text),
+        ],
+      )
 }
 
 fn granny_square(model: Model) -> Element(Message) {
   html.svg(
     [
-      attribute.class("granny_square"),
+      attribute.class("granny_square w-full"),
       attribute.attribute("viewBox", "-145 -145 290 290"),
-      attribute.width(550),
-      attribute.height(550),
     ],
-    model.quadrant |> list.index_map(full_square) |> list.flatten(),
+    list.index_map(model.quadrant, square),
   )
 }
 
-fn full_square(row: List(Cell), row_index: Int) -> List(Element(Message)) {
-  list.index_fold(row, [], fn(acc, cell, cell_index) {
-    prepend_cell_rects(cell, cell_index, row_index, acc)
-  })
+fn square(row: List(Cell), row_index: Int) -> Element(Message) {
+  svg.g(
+    [attribute.class("round-" <> int.to_string(row_index))],
+    list.index_fold(row, [], fn(acc, cell, cell_index) {
+      prepend_cell_rects(cell, cell_index, row_index, acc)
+    }),
+  )
+}
+
+type CellDirection {
+  North
+  South
+  East
+  West
 }
 
 fn prepend_cell_rects(cell, cell_index, row_index, acc) {
-  let row_position = row_index * cell_width
-  let col_position = cell_index * cell_height
-
-  let nsx = col_position - row_position - half_cell_width
-  let nsy = row_position - half_cell_width
-  let ewx = row_position - half_cell_width
-  let ewy = row_position - col_position - half_cell_width
+  let x =
+    { cell_index * cell_height } - { row_index * cell_width } - half_cell_width
+  let y = {
+    row_index * cell_width
+  }
 
   [
-    cell_rect(cell, nsx, nsy + 5, NorthSouth, cell_width),
-    cell_rect(cell, ewx + 5, ewy, EastWest, cell_width),
-    cell_rect(
-      cell,
-      -nsx - cell_width,
-      -nsy - cell_height - 5,
-      NorthSouth,
-      cell_width,
-    ),
-    cell_rect(
-      cell,
-      -ewx - cell_height - 5,
-      -ewy - cell_width,
-      EastWest,
-      cell_width,
-    ),
+    cell_rect(cell, x, y, South),
+    cell_rect(cell, x, y, West),
+    cell_rect(cell, x, y, East),
+    cell_rect(cell, x, y, North),
     ..acc
   ]
-}
-
-type Direction {
-  NorthSouth
-  EastWest
 }
 
 fn cell_rect(
   cell: Cell,
   x: Int,
   y: Int,
-  direction: Direction,
-  dim: Int,
+  direction: CellDirection,
 ) -> Element(Message) {
   svg.rect([
     attribute.attribute("x", int.to_string(x)),
     attribute.attribute("y", int.to_string(y)),
     attribute.attribute("rx", "3"),
     attribute.attribute("ry", "3"),
-    attribute.classes(cell_class(cell)),
-    ..cell_attributes(dim, direction)
+    attribute.width(cell_width),
+    attribute.height(cell_height),
+    case cell {
+      Alive -> attribute.class("cell alive fill-slate-100 stroke-slate-400")
+      Dormant ->
+        attribute.class("cell dormant fill-purple-800 stroke-purple-900")
+    },
+    case direction {
+      North -> attribute.attribute("transform", "rotate(180)")
+      South -> attribute.attribute("transform", "")
+      West -> attribute.attribute("transform", "rotate(90)")
+      East -> attribute.attribute("transform", "rotate(270)")
+    },
   ])
-}
-
-fn cell_attributes(
-  dim: Int,
-  direction: Direction,
-) -> List(attribute.Attribute(Message)) {
-  case direction {
-    NorthSouth -> [
-      attribute.width(dim),
-      attribute.height(dim * 2),
-    ]
-    EastWest -> [
-      attribute.width(dim * 2),
-      attribute.height(dim),
-    ]
-  }
-}
-
-fn cell_class(cell: Cell) -> List(#(String, Bool)) {
-  case cell {
-    Alive -> [#("cell", True), #("alive", True)]
-    Dormant -> [#("cell", True), #("dormant", True)]
-  }
 }
