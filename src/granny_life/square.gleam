@@ -32,7 +32,7 @@ import gleam/float
 import gleam/int
 import gleam/list
 
-/// The first generation of the square Granny Life motif
+/// The first generation quadrant of the square Granny Life motif
 pub const granny_life_gen_0 = [
   [Alive],
   [Dormant, Dormant],
@@ -123,8 +123,8 @@ pub type Cell {
 /// ```gleam
 /// assert square.alive_percentage(square.granny_life_gen_0) |> float.round() == 16.0
 /// ```
-pub fn alive_percentage(generation: List(List(Cell))) -> Float {
-  let flattened_rows = list.flatten(generation)
+pub fn alive_percentage(quadrant: List(List(Cell))) -> Float {
+  let flattened_rows = list.flatten(quadrant)
   let total_cells = list.length(flattened_rows)
 
   let percentage =
@@ -136,6 +136,39 @@ pub fn alive_percentage(generation: List(List(Cell))) -> Float {
   case percentage {
     Ok(result) -> float.multiply(result, 100.0)
     Error(Nil) -> 0.0
+  }
+}
+
+pub fn color_changes(quadrant: List(List(Cell))) -> Int {
+  sum_color_changes(quadrant, 0)
+}
+
+fn sum_color_changes(quadrant: List(List(Cell)), acc: Int) -> Int {
+  case quadrant {
+    [] -> acc
+    [_] -> acc
+    [[], _, ..] -> acc
+    [[_, ..], [], ..] -> acc
+    [[first_cell, ..] as first_row, [second_cell, ..] as second_row, ..rest] -> {
+      let row_changes = sum_row_color_changes(first_row, 0) * 4
+      let between_change = sum_row_color_changes([first_cell, second_cell], 0)
+
+      sum_color_changes(
+        [second_row, ..rest],
+        row_changes + between_change + acc,
+      )
+    }
+  }
+}
+
+fn sum_row_color_changes(row: List(Cell), acc: Int) -> Int {
+  case row {
+    [] -> acc
+    [_cell] -> acc
+    [Alive, Dormant as cell, ..rest] | [Dormant, Alive as cell, ..rest] ->
+      sum_row_color_changes([cell, ..rest], acc + 1)
+    [Dormant, Dormant as cell, ..rest] | [Alive, Alive as cell, ..rest] ->
+      sum_row_color_changes([cell, ..rest], acc)
   }
 }
 
@@ -151,30 +184,34 @@ pub fn nth_generation(
 }
 
 /// Given a proper granny square, this returns the next generation
-pub fn next_generation(current_gen: List(List(Cell))) -> List(List(Cell)) {
-  create_next_gen(current_gen, [])
+pub fn next_generation(quadrant: List(List(Cell))) -> List(List(Cell)) {
+  create_next_gen(quadrant, [])
 }
 
 fn create_next_gen(
-  current_gen: List(List(Cell)),
-  next: List(List(Cell)),
+  current_quadrant: List(List(Cell)),
+  next_quadrant: List(List(Cell)),
 ) -> List(List(Cell)) {
-  case current_gen {
-    [] -> list.reverse(next)
-    [_] -> list.reverse(next)
-    [_first, _second] -> list.reverse(next)
+  case current_quadrant {
+    [] -> list.reverse(next_quadrant)
+    [_] -> list.reverse(next_quadrant)
+    [_first, _second] -> list.reverse(next_quadrant)
     [first, second, last] ->
-      create_next_gen([], [last, next_gen_row(first, second, last), ..next])
+      create_next_gen([], [
+        last,
+        next_gen_row(first, second, last),
+        ..next_quadrant
+      ])
     [[_first] as first, second, third, ..rest] ->
       create_next_gen([second, third, ..rest], [
         next_gen_row(first, second, third),
         next_gen_row([], first, second),
-        ..next
+        ..next_quadrant
       ])
     [first, second, third, ..rest] ->
       create_next_gen([second, third, ..rest], [
         next_gen_row(first, second, third),
-        ..next
+        ..next_quadrant
       ])
   }
 }

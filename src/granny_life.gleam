@@ -23,13 +23,13 @@ pub fn main() {
 }
 
 type Model {
-  Model(generation: Int, quadrant: List(List(Cell)), alive_percent: Float)
+  Model(generation: Int, quadrant: List(List(Cell)))
 }
 
 fn init(_args) -> Model {
   let quadrant = square.granny_life_gen_0
 
-  Model(0, quadrant, square.alive_percentage(quadrant))
+  Model(0, quadrant)
 }
 
 type Message {
@@ -50,7 +50,7 @@ fn next_generation(model: Model) -> Model {
   let generation = model.generation + 1
   let quadrant = square.next_generation(model.quadrant)
 
-  Model(generation, quadrant, square.alive_percentage(quadrant))
+  Model(generation, quadrant)
 }
 
 fn previous_generation(model: Model) -> Model {
@@ -64,22 +64,27 @@ fn create_previous_generation(model: Model) -> Model {
   let generation = model.generation - 1
   let quadrant = square.nth_generation(square.granny_life_gen_0, generation)
 
-  Model(generation, quadrant, square.alive_percentage(quadrant))
+  Model(generation, quadrant)
 }
 
 fn view(model: Model) -> Element(Message) {
   let generation = int.to_string(model.generation)
-  let alive_percent = model.alive_percent |> float.round() |> int.to_string()
+  let alive_percent =
+    model.quadrant
+    |> square.alive_percentage()
+    |> float.round()
+    |> int.to_string()
+
+  let color_changes =
+    model.quadrant |> square.color_changes() |> int.to_string()
 
   html.main([attribute.class("container mx-auto max-w-lg")], [
-    html.h1([attribute.class("m-2 text-3xl")], [
-      html.text("Granny Life Motif")
-    ]),
+    html.h1([attribute.class("m-2 text-3xl")], [html.text("Granny Life Motif")]),
     html.div([], [granny_square(model)]),
     html.div([attribute.class("flex flex-row text-lg")], [
       stat_box("Generation", generation),
       stat_box("Percent alive", alive_percent <> "%"),
-      stat_box("Color changes", "??"),
+      stat_box("Color changes", color_changes),
     ]),
     html.div([attribute.class("flex flex-row")], [
       button("Previous", UserClickedPreviousGen),
@@ -90,22 +95,22 @@ fn view(model: Model) -> Element(Message) {
 }
 
 fn button(text: String, message: Message) -> Element(Message) {
-      html.button(
-        [
-          attribute.class("flex-1 p-2 m-2 border-2 rounded-md bg-sky-500 border-sky-400"),
-          event.on_click(message),
-        ],
-        [
-          html.text(text),
-        ],
-      )
+  html.button(
+    [
+      attribute.class(
+        "flex-1 p-2 m-2 border-2 rounded-md bg-sky-500 border-sky-400",
+      ),
+      event.on_click(message),
+    ],
+    [
+      html.text(text),
+    ],
+  )
 }
 
 fn stat_box(title: String, value: String) -> Element(Message) {
-  html.div([
-    attribute.class("flex-1 p-2 m-2 rounded-md bg-slate-700")
-  ], [
-    html.div([attribute.class("text-xs")], [html.text(title)]),
+  html.div([attribute.class("flex-1 p-2 m-2 rounded-md bg-slate-700")], [
+    html.div([attribute.class("text-xs text-slate-400")], [html.text(title)]),
     html.div([attribute.class("text-center")], [html.text(value)]),
   ])
 }
@@ -166,9 +171,9 @@ fn cell_rect(
     attribute.width(cell_width),
     attribute.height(cell_height),
     case cell {
-      Alive -> attribute.class("cell alive fill-slate-100 stroke-slate-400")
+      Alive -> attribute.class("cell alive fill-slate-100")
       Dormant ->
-        attribute.class("cell dormant fill-purple-800 stroke-purple-900")
+        attribute.class("cell dormant fill-purple-800")
     },
     case direction {
       North -> attribute.attribute("transform", "rotate(180)")

@@ -18,6 +18,14 @@ pub fn alive_percentage_test() {
   assert alive_percent == 32
 }
 
+pub fn color_change_test() {
+  let gen = square.granny_life_gen_0
+
+  assert square.color_changes(gen) == 2
+
+  assert gen |> square.nth_generation(2) |> square.color_changes() == 11
+}
+
 pub fn zeroth_generation_test() {
   let gen_0 = [
     [Alive],
