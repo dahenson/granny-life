@@ -71,22 +71,16 @@ fn view(model: Model) -> Element(Message) {
   let generation = int.to_string(model.generation)
   let alive_percent = model.alive_percent |> float.round() |> int.to_string()
 
-  html.main([attribute.class("container mx-auto max-w-xl")], [
+  html.main([attribute.class("container mx-auto max-w-lg")], [
     html.h1([attribute.class("m-2 text-3xl")], [
       html.text("Granny Life Motif")
     ]),
-    html.div([attribute.class("flex flex-row text-lg")], [
-      html.div([
-        attribute.class("flex-auto p-2 m-2 rounded-md bg-slate-700")
-      ], [html.text("Generation " <> generation)]),
-      html.div([
-        attribute.class("flex-auto p-2 m-2 rounded-md bg-slate-700")
-      ], [html.text(alive_percent <> "% alive")]),
-      html.div([
-        attribute.class("flex-auto p-2 m-2 rounded-md bg-slate-700")
-      ], [html.text("?? color changes")]),
-    ]),
     html.div([], [granny_square(model)]),
+    html.div([attribute.class("flex flex-row text-lg")], [
+      stat_box("Generation", generation),
+      stat_box("Percent alive", alive_percent <> "%"),
+      stat_box("Color changes", "??"),
+    ]),
     html.div([attribute.class("flex flex-row")], [
       button("Previous", UserClickedPreviousGen),
       button("Reset", UserClickedResetGen),
@@ -98,13 +92,22 @@ fn view(model: Model) -> Element(Message) {
 fn button(text: String, message: Message) -> Element(Message) {
       html.button(
         [
-          attribute.class("flex-auto p-2 m-2 border-2 rounded-md bg-sky-500 border-sky-400"),
+          attribute.class("flex-1 p-2 m-2 border-2 rounded-md bg-sky-500 border-sky-400"),
           event.on_click(message),
         ],
         [
           html.text(text),
         ],
       )
+}
+
+fn stat_box(title: String, value: String) -> Element(Message) {
+  html.div([
+    attribute.class("flex-1 p-2 m-2 rounded-md bg-slate-700")
+  ], [
+    html.div([attribute.class("text-xs")], [html.text(title)]),
+    html.div([attribute.class("text-center")], [html.text(value)]),
+  ])
 }
 
 fn granny_square(model: Model) -> Element(Message) {
