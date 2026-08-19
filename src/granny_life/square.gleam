@@ -109,6 +109,9 @@ pub const granny_life_gen_0 = [
   ],
 ]
 
+pub type Quadrant =
+  List(List(Cell))
+
 pub type Cell {
   Alive
   Dormant
@@ -123,7 +126,7 @@ pub type Cell {
 /// ```gleam
 /// assert square.alive_percentage(square.granny_life_gen_0) |> float.round() == 16.0
 /// ```
-pub fn alive_percentage(quadrant: List(List(Cell))) -> Float {
+pub fn alive_percentage(quadrant: Quadrant) -> Float {
   let flattened_rows = list.flatten(quadrant)
   let total_cells = list.length(flattened_rows)
 
@@ -139,11 +142,11 @@ pub fn alive_percentage(quadrant: List(List(Cell))) -> Float {
   }
 }
 
-pub fn color_changes(quadrant: List(List(Cell))) -> Int {
+pub fn color_changes(quadrant: Quadrant) -> Int {
   sum_color_changes(quadrant, 0)
 }
 
-fn sum_color_changes(quadrant: List(List(Cell)), acc: Int) -> Int {
+fn sum_color_changes(quadrant: Quadrant, acc: Int) -> Int {
   case quadrant {
     [] -> acc
     [_] -> acc
@@ -173,10 +176,7 @@ fn sum_row_color_changes(row: List(Cell), acc: Int) -> Int {
 }
 
 /// Returns the nth generation from the current generation
-pub fn nth_generation(
-  current_gen: List(List(Cell)),
-  n: Int,
-) -> List(List(Cell)) {
+pub fn nth_generation(current_gen: Quadrant, n: Int) -> Quadrant {
   case n {
     n if n <= 0 -> current_gen
     n -> current_gen |> next_generation() |> nth_generation(n - 1)
@@ -184,14 +184,14 @@ pub fn nth_generation(
 }
 
 /// Given a proper granny square, this returns the next generation
-pub fn next_generation(quadrant: List(List(Cell))) -> List(List(Cell)) {
+pub fn next_generation(quadrant: Quadrant) -> Quadrant {
   create_next_gen(quadrant, [])
 }
 
 fn create_next_gen(
-  current_quadrant: List(List(Cell)),
-  next_quadrant: List(List(Cell)),
-) -> List(List(Cell)) {
+  current_quadrant: Quadrant,
+  next_quadrant: Quadrant,
+) -> Quadrant {
   case current_quadrant {
     [] -> list.reverse(next_quadrant)
     [_] -> list.reverse(next_quadrant)

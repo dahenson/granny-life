@@ -1,7 +1,7 @@
 import gleam/float
 import gleam/int
 import gleam/list
-import granny_life/square.{type Cell, Alive, Dormant}
+import granny_life/square.{type Cell, type Quadrant, Alive, Dormant}
 import lustre
 import lustre/attribute
 import lustre/element.{type Element}
@@ -23,7 +23,7 @@ pub fn main() {
 }
 
 type Model {
-  Model(generation: Int, quadrant: List(List(Cell)))
+  Model(generation: Int, quadrant: Quadrant)
 }
 
 fn init(_args) -> Model {
@@ -36,6 +36,8 @@ type Message {
   UserClickedNextGen
   UserClickedPreviousGen
   UserClickedResetGen
+  UserRequestedInvalidGen
+  UserRequestedNewGen(Int)
 }
 
 fn update(model: Model, message: Message) -> Model {
@@ -43,6 +45,8 @@ fn update(model: Model, message: Message) -> Model {
     UserClickedNextGen -> next_generation(model)
     UserClickedResetGen -> init([])
     UserClickedPreviousGen -> previous_generation(model)
+    UserRequestedInvalidGen -> model
+    UserRequestedNewGen(generation) -> jump_to_generation(model, generation)
   }
 }
 
@@ -67,6 +71,12 @@ fn create_previous_generation(model: Model) -> Model {
   Model(generation, quadrant)
 }
 
+fn jump_to_generation(model: Model, generation: Int) -> Model {
+  let quadrant = square.nth_generation(square.granny_life_gen_0, generation)
+
+  Model(generation, quadrant)
+}
+
 fn view(model: Model) -> Element(Message) {
   let generation = int.to_string(model.generation)
   let alive_percent =
@@ -82,15 +92,53 @@ fn view(model: Model) -> Element(Message) {
     html.h1([attribute.class("m-2 text-3xl")], [html.text("Granny Life Motif")]),
     html.div([], [granny_square(model)]),
     html.div([attribute.class("flex flex-row text-lg")], [
-      stat_box("Generation", generation),
-      stat_box("Percent alive", alive_percent <> "%"),
-      stat_box("Color changes", color_changes),
+      stat_box("Generation", [
+        html.div([attribute.class("text-center")], [html.text(generation)]),
+      ]),
+      stat_box("Percent alive", [
+        html.div([attribute.class("text-center")], [
+          html.text(alive_percent <> "%"),
+        ]),
+      ]),
+      stat_box("Color changes", [
+        html.div([attribute.class("text-center")], [
+          html.text(color_changes),
+        ]),
+      ]),
     ]),
     html.div([attribute.class("flex flex-row")], [
       button("Previous", UserClickedPreviousGen),
       button("Reset", UserClickedResetGen),
       button("Next", UserClickedNextGen),
     ]),
+    stat_box("Jump to generation", [
+      html.form(
+        [
+          event.on_submit(process_generation_form),
+          attribute.class("flex flex-row"),
+        ],
+        [
+          html.input([
+            attribute.class("p-2 m-2 w-full rounded-sm border-1"),
+            attribute.name("generation"),
+          ]),
+          html.button(
+            [attribute.class("p-2 m-2 rounded-sm bg-sky-500 border-sky-400")],
+            [html.text("Go")],
+          ),
+        ],
+      ),
+    ]),
+  ])
+}
+
+fn stat_box(
+  title: String,
+  content: List(Element(Message)),
+) -> Element(Message) {
+  html.div([attribute.class("flex-1 p-2 m-2 rounded-sm bg-slate-700")], [
+    html.div([attribute.class("text-xs text-slate-400")], [html.text(title)]),
+    ..content
   ])
 }
 
@@ -98,7 +146,7 @@ fn button(text: String, message: Message) -> Element(Message) {
   html.button(
     [
       attribute.class(
-        "flex-1 p-2 m-2 border-2 rounded-md bg-sky-500 border-sky-400",
+        "flex-1 p-2 m-2 border-2 rounded-sm bg-sky-500 border-sky-400",
       ),
       event.on_click(message),
     ],
@@ -108,17 +156,10 @@ fn button(text: String, message: Message) -> Element(Message) {
   )
 }
 
-fn stat_box(title: String, value: String) -> Element(Message) {
-  html.div([attribute.class("flex-1 p-2 m-2 rounded-md bg-slate-700")], [
-    html.div([attribute.class("text-xs text-slate-400")], [html.text(title)]),
-    html.div([attribute.class("text-center")], [html.text(value)]),
-  ])
-}
-
 fn granny_square(model: Model) -> Element(Message) {
   html.svg(
     [
-      attribute.class("granny_square w-full"),
+      attribute.class("granny_square"),
       attribute.attribute("viewBox", "-145 -145 290 290"),
     ],
     list.index_map(model.quadrant, square),
@@ -172,8 +213,7 @@ fn cell_rect(
     attribute.height(cell_height),
     case cell {
       Alive -> attribute.class("cell alive fill-slate-100")
-      Dormant ->
-        attribute.class("cell dormant fill-purple-800")
+      Dormant -> attribute.class("cell dormant fill-purple-800")
     },
     case direction {
       North -> attribute.attribute("transform", "rotate(180)")
@@ -182,4 +222,16 @@ fn cell_rect(
       East -> attribute.attribute("transform", "rotate(270)")
     },
   ])
+}
+
+fn process_generation_form(fields: List(#(String, String))) -> Message {
+  case fields {
+    [] -> UserRequestedInvalidGen
+    [#("generation", generation), ..rest] ->
+      case int.parse(generation) {
+        Ok(gen) -> UserRequestedNewGen(gen)
+        Error(Nil) -> UserRequestedInvalidGen
+      }
+    [_, ..rest] -> process_generation_form(rest)
+  }
 }
