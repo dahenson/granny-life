@@ -23,13 +23,7 @@ pub fn main() {
 }
 
 type Model {
-  Model(generation: Int, quadrant: Quadrant)
-}
-
-fn init(_args) -> Model {
-  let quadrant = square.granny_life_gen_0
-
-  Model(0, quadrant)
+  Model(generation: Int, quadrant: Quadrant, color: Color)
 }
 
 type Message {
@@ -38,6 +32,30 @@ type Message {
   UserClickedResetGen
   UserRequestedInvalidGen
   UserRequestedNewGen(Int)
+  UserSelectedColor(Color)
+}
+
+type Color {
+  Red
+  Orange
+  Yellow
+  Green
+  Blue
+  Indigo
+  Violet
+}
+
+type CellDirection {
+  North
+  South
+  East
+  West
+}
+
+fn init(_args) -> Model {
+  let quadrant = square.granny_life_gen_0
+
+  Model(0, quadrant, Blue)
 }
 
 fn update(model: Model, message: Message) -> Model {
@@ -47,6 +65,7 @@ fn update(model: Model, message: Message) -> Model {
     UserClickedPreviousGen -> previous_generation(model)
     UserRequestedInvalidGen -> model
     UserRequestedNewGen(generation) -> jump_to_generation(model, generation)
+    UserSelectedColor(color) -> Model(..model, color: color)
   }
 }
 
@@ -54,7 +73,7 @@ fn next_generation(model: Model) -> Model {
   let generation = model.generation + 1
   let quadrant = square.next_generation(model.quadrant)
 
-  Model(generation, quadrant)
+  Model(..model, generation: generation, quadrant: quadrant)
 }
 
 fn previous_generation(model: Model) -> Model {
@@ -68,13 +87,13 @@ fn create_previous_generation(model: Model) -> Model {
   let generation = model.generation - 1
   let quadrant = square.nth_generation(square.granny_life_gen_0, generation)
 
-  Model(generation, quadrant)
+  Model(..model, generation: generation, quadrant: quadrant)
 }
 
 fn jump_to_generation(model: Model, generation: Int) -> Model {
   let quadrant = square.nth_generation(square.granny_life_gen_0, generation)
 
-  Model(generation, quadrant)
+  Model(..model, generation: generation, quadrant: quadrant)
 }
 
 fn view(model: Model) -> Element(Message) {
@@ -91,6 +110,15 @@ fn view(model: Model) -> Element(Message) {
   html.main([attribute.class("container mx-auto max-w-lg")], [
     html.h1([attribute.class("m-2 text-3xl")], [html.text("Granny Life Motif")]),
     html.div([], [granny_square(model)]),
+    html.div([attribute.class("my-4 flex flex-row gap-2 justify-around")], [
+      color_select_button(Red, "bg-red-800"),
+      color_select_button(Orange, "bg-orange-800"),
+      color_select_button(Yellow, "bg-yellow-800"),
+      color_select_button(Green, "bg-green-800"),
+      color_select_button(Blue, "bg-blue-800"),
+      color_select_button(Indigo, "bg-indigo-800"),
+      color_select_button(Violet, "bg-violet-800"),
+    ]),
     html.div([attribute.class("flex flex-row text-lg")], [
       stat_box("Generation", [
         html.div([attribute.class("text-center")], [html.text(generation)]),
@@ -116,6 +144,7 @@ fn view(model: Model) -> Element(Message) {
         [
           event.on_submit(process_generation_form),
           attribute.class("flex flex-row"),
+          attribute.autocomplete("off"),
         ],
         [
           html.input([
@@ -128,6 +157,10 @@ fn view(model: Model) -> Element(Message) {
           ),
         ],
       ),
+    ]),
+    html.footer([attribute.class("p-2 m-2 text-center text-slate-500")], [
+      html.text("Carefully crafted by "),
+      html.a([attribute.href("https://brainofdane.com")], [html.text("Dane")]),
     ]),
   ])
 }
@@ -156,6 +189,17 @@ fn button(text: String, message: Message) -> Element(Message) {
   )
 }
 
+fn color_select_button(color: Color, class: String) -> Element(Message) {
+  html.button(
+    [
+      attribute.class("w-8 h-8 rounded-2xl"),
+      attribute.class(class),
+      event.on_click(UserSelectedColor(color)),
+    ],
+    [],
+  )
+}
+
 fn granny_square(model: Model) -> Element(Message) {
   html.svg(
     [
@@ -175,14 +219,12 @@ fn square(row: List(Cell), row_index: Int) -> Element(Message) {
   )
 }
 
-type CellDirection {
-  North
-  South
-  East
-  West
-}
-
-fn prepend_cell_rects(cell, cell_index, row_index, acc) {
+fn prepend_cell_rects(
+  cell: Cell,
+  cell_index: Int,
+  row_index: Int,
+  acc: List(Element(Message)),
+) -> List(Element(Message)) {
   let x =
     { cell_index * cell_height } - { row_index * cell_width } - half_cell_width
   let y = {
@@ -204,23 +246,38 @@ fn cell_rect(
   y: Int,
   direction: CellDirection,
 ) -> Element(Message) {
-  svg.rect([
-    attribute.attribute("x", int.to_string(x)),
-    attribute.attribute("y", int.to_string(y)),
-    attribute.attribute("rx", "3"),
-    attribute.attribute("ry", "3"),
-    attribute.width(cell_width),
-    attribute.height(cell_height),
-    case cell {
-      Alive -> attribute.class("cell alive fill-slate-100")
-      Dormant -> attribute.class("cell dormant fill-purple-800")
-    },
-    case direction {
-      North -> attribute.attribute("transform", "rotate(180)")
-      South -> attribute.attribute("transform", "")
-      West -> attribute.attribute("transform", "rotate(90)")
-      East -> attribute.attribute("transform", "rotate(270)")
-    },
+  svg.g([
+      case direction {
+        North -> attribute.attribute("transform", "rotate(180)")
+        South -> attribute.attribute("transform", "")
+        West -> attribute.attribute("transform", "rotate(90)")
+        East -> attribute.attribute("transform", "rotate(270)")
+      },
+  ], [
+    svg.rect([
+      attribute.attribute("x", int.to_string(x)),
+      attribute.attribute("y", int.to_string(y)),
+      attribute.attribute("rx", "4"),
+      attribute.attribute("ry", "4"),
+      attribute.width(cell_width),
+      attribute.height(cell_height),
+      case cell {
+        Alive -> attribute.class("cell alive fill-slate-200")
+        Dormant -> attribute.class("cell dormant fill-red-900")
+      },
+    ]),
+    svg.line([
+      attribute.attribute("x1", int.to_string(x - cell_width + 3)),
+      attribute.attribute("y1", int.to_string(y + cell_height - 3)),
+      attribute.attribute("x2", int.to_string(x + cell_width * 2 - 3)),
+      attribute.attribute("y2", int.to_string(y + cell_height - 3)),
+      attribute.attribute("stroke-width", "6"),
+      attribute.attribute("stroke-linecap", "round"),
+      case cell {
+        Alive -> attribute.class("cell alive stroke-slate-100")
+        Dormant -> attribute.class("cell dormant stroke-red-800")
+      },
+    ]),
   ])
 }
 
