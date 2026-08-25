@@ -3,7 +3,7 @@ import gleam/int
 import gleam/list
 import granny_life/square.{type Cell, type Quadrant, Alive, Dormant}
 import lustre
-import lustre/attribute
+import lustre/attribute.{type Attribute}
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/element/svg
@@ -22,17 +22,11 @@ pub fn main() {
   Nil
 }
 
-type Model {
-  Model(generation: Int, quadrant: Quadrant, color: Color)
-}
-
-type Message {
-  UserClickedNextGen
-  UserClickedPreviousGen
-  UserClickedResetGen
-  UserRequestedInvalidGen
-  UserRequestedNewGen(Int)
-  UserSelectedColor(Color)
+type CellDirection {
+  North
+  South
+  East
+  West
 }
 
 type Color {
@@ -43,26 +37,52 @@ type Color {
   Blue
   Indigo
   Violet
+  Pink
 }
 
-type CellDirection {
-  North
-  South
-  East
-  West
+type Message {
+  UserClickedNextGen
+  UserClickedNextRound
+  UserClickedPreviousGen
+  UserClickedPreviousRound
+  UserClickedResetGen
+  UserDisabledFocusMode
+  UserEnabledFocusMode
+  UserRequestedInvalidGen
+  UserRequestedNewGen(Int)
+  UserSelectedColor(Color)
+}
+
+type Model {
+  Model(
+    color: Color,
+    focus_mode: Bool,
+    focus_round: Int,
+    generation: Int,
+    quadrant: Quadrant,
+  )
 }
 
 fn init(_args) -> Model {
-  let quadrant = square.granny_life_gen_0
-
-  Model(0, quadrant, Blue)
+  Model(
+    color: Indigo,
+    focus_mode: False,
+    focus_round: 0,
+    generation: 0,
+    quadrant: square.granny_life_gen_0,
+  )
 }
 
 fn update(model: Model, message: Message) -> Model {
   case message {
     UserClickedNextGen -> next_generation(model)
-    UserClickedResetGen -> init([])
+    UserClickedNextRound -> next_round(model)
+    UserClickedResetGen ->
+      Model(..model, focus_round: 0, generation: 0, quadrant: square.granny_life_gen_0)
     UserClickedPreviousGen -> previous_generation(model)
+    UserClickedPreviousRound -> previous_round(model)
+    UserDisabledFocusMode -> Model(..model, focus_mode: False)
+    UserEnabledFocusMode -> Model(..model, focus_mode: True)
     UserRequestedInvalidGen -> model
     UserRequestedNewGen(generation) -> jump_to_generation(model, generation)
     UserSelectedColor(color) -> Model(..model, color: color)
@@ -73,13 +93,13 @@ fn next_generation(model: Model) -> Model {
   let generation = model.generation + 1
   let quadrant = square.next_generation(model.quadrant)
 
-  Model(..model, generation: generation, quadrant: quadrant)
+  Model(..model, focus_round: 0, generation: generation, quadrant: quadrant)
 }
 
 fn previous_generation(model: Model) -> Model {
   case model.generation {
     gen if gen > 0 -> create_previous_generation(model)
-    _ -> model
+    _ -> Model(..model, focus_round: 0)
   }
 }
 
@@ -87,13 +107,51 @@ fn create_previous_generation(model: Model) -> Model {
   let generation = model.generation - 1
   let quadrant = square.nth_generation(square.granny_life_gen_0, generation)
 
-  Model(..model, generation: generation, quadrant: quadrant)
+  Model(..model, focus_round: 0, generation: generation, quadrant: quadrant)
 }
 
 fn jump_to_generation(model: Model, generation: Int) -> Model {
-  let quadrant = square.nth_generation(square.granny_life_gen_0, generation)
+  let quadrant = case generation - model.generation {
+    nth_gen if nth_gen >= 0 -> square.nth_generation(model.quadrant, nth_gen)
+    _ -> square.nth_generation(square.granny_life_gen_0, generation)
+  }
 
   Model(..model, generation: generation, quadrant: quadrant)
+}
+
+fn next_round(model: Model) -> Model {
+  let max_round = list.length(model.quadrant) - 1
+
+  case model.focus_round {
+    focus if focus >= max_round -> model
+    focus -> Model(..model, focus_round: focus + 1)
+  }
+}
+
+fn previous_round(model: Model) -> Model {
+  case model.focus_round {
+    round if round < 1 -> model
+    round -> Model(..model, focus_round: round - 1)
+  }
+}
+
+fn handle_generation_form_submit(fields: List(#(String, String))) -> Message {
+  case fields {
+    [] -> UserRequestedInvalidGen
+    [#("generation", generation), ..] ->
+      case int.parse(generation) {
+        Ok(gen) -> UserRequestedNewGen(gen)
+        Error(Nil) -> UserRequestedInvalidGen
+      }
+    [_, ..rest] -> handle_generation_form_submit(rest)
+  }
+}
+
+fn handle_focus_mode_toggled(enabled: Bool) {
+  case enabled {
+    True -> UserEnabledFocusMode
+    False -> UserDisabledFocusMode
+  }
 }
 
 fn view(model: Model) -> Element(Message) {
@@ -107,57 +165,52 @@ fn view(model: Model) -> Element(Message) {
   let color_changes =
     model.quadrant |> square.color_changes() |> int.to_string()
 
-  html.main([attribute.class("container mx-auto max-w-lg")], [
-    html.h1([attribute.class("m-2 text-3xl")], [html.text("Granny Life Motif")]),
-    html.div([], [granny_square(model)]),
-    html.div([attribute.class("my-4 flex flex-row gap-2 justify-around")], [
-      color_select_button(Red, "bg-red-800"),
-      color_select_button(Orange, "bg-orange-800"),
-      color_select_button(Yellow, "bg-yellow-800"),
-      color_select_button(Green, "bg-green-800"),
-      color_select_button(Blue, "bg-blue-800"),
-      color_select_button(Indigo, "bg-indigo-800"),
-      color_select_button(Violet, "bg-violet-800"),
-    ]),
-    html.div([attribute.class("flex flex-row text-lg")], [
+  html.main([], [
+    html.h1([], [html.text("Granny Life Motif Generator")]),
+    html.div([attribute.class("stats")], [
       stat_box("Generation", [
-        html.div([attribute.class("text-center")], [html.text(generation)]),
+        html.div([attribute.class("content")], [html.text(generation)]),
       ]),
       stat_box("Percent alive", [
-        html.div([attribute.class("text-center")], [
+        html.div([attribute.class("content")], [
           html.text(alive_percent <> "%"),
         ]),
       ]),
       stat_box("Color changes", [
-        html.div([attribute.class("text-center")], [
+        html.div([attribute.class("content")], [
           html.text(color_changes),
         ]),
       ]),
     ]),
-    html.div([attribute.class("flex flex-row")], [
-      button("Previous", UserClickedPreviousGen),
-      button("Reset", UserClickedResetGen),
-      button("Next", UserClickedNextGen),
+    html.div([], [granny_square(model)]),
+    html.div([], [
+      html.label([attribute.attribute("for", "focus-mode")], [
+        html.text("Focus mode: "),
+      ]),
+      html.input([
+        event.on_check(handle_focus_mode_toggled),
+        attribute.attribute("type", "checkbox"),
+        attribute.name("focus-mode"),
+      ]),
     ]),
-    stat_box("Jump to generation", [
-      html.form(
-        [
-          event.on_submit(process_generation_form),
-          attribute.class("flex flex-row"),
-          attribute.autocomplete("off"),
-        ],
-        [
-          html.input([
-            attribute.class("p-2 m-2 w-full rounded-sm border-1"),
-            attribute.name("generation"),
-          ]),
-          html.button(
-            [attribute.class("p-2 m-2 rounded-sm bg-sky-500 border-sky-400")],
-            [html.text("Go")],
-          ),
-        ],
-      ),
-    ]),
+    case model.focus_mode {
+      True -> html.div([], [])
+      False ->
+        html.div([attribute.class("color-button-container")], [
+          color_select_button(Red),
+          color_select_button(Orange),
+          color_select_button(Yellow),
+          color_select_button(Green),
+          color_select_button(Blue),
+          color_select_button(Indigo),
+          color_select_button(Violet),
+          color_select_button(Pink),
+        ])
+    },
+    case model.focus_mode {
+      True -> focus_navigation(model.focus_round + 1)
+      False -> generation_navigation()
+    },
     html.footer([attribute.class("p-2 m-2 text-center text-slate-500")], [
       html.text("Carefully crafted by "),
       html.a([attribute.href("https://brainofdane.com")], [html.text("Dane")]),
@@ -165,36 +218,69 @@ fn view(model: Model) -> Element(Message) {
   ])
 }
 
+fn focus_navigation(focus_round: Int) -> Element(Message) {
+  let round = int.to_string(focus_round)
+  html.div([], [
+    html.div([attribute.class("focus-nav")], [
+      button("Previous", UserClickedPreviousRound),
+      stat_box("Crochet round", [
+        html.div([attribute.class("content")], [
+          html.text(round),
+        ]),
+      ]),
+      button("Next", UserClickedNextRound),
+    ]),
+  ])
+}
+
+fn generation_navigation() -> Element(Message) {
+  html.div([], [
+    html.div([attribute.class("generation-nav")], [
+      button("Previous", UserClickedPreviousGen),
+      button("Reset", UserClickedResetGen),
+      button("Next", UserClickedNextGen),
+    ]),
+    html.form(
+      [
+        event.on_submit(handle_generation_form_submit),
+        attribute.class("generation-jump-form"),
+        attribute.autocomplete("off"),
+      ],
+      [
+        html.label([attribute.for("generation")], [
+          html.text("Generation:"),
+        ]),
+        html.input([
+          attribute.attribute("type", "number"),
+          attribute.name("generation"),
+          attribute.value(""),
+        ]),
+        html.button([], [html.text("Go")]),
+      ],
+    ),
+  ])
+}
+
 fn stat_box(
   title: String,
   content: List(Element(Message)),
 ) -> Element(Message) {
-  html.div([attribute.class("flex-1 p-2 m-2 rounded-sm bg-slate-700")], [
-    html.div([attribute.class("text-xs text-slate-400")], [html.text(title)]),
+  html.div([attribute.class("stat-box")], [
+    html.div([attribute.class("title")], [html.text(title)]),
     ..content
   ])
 }
 
 fn button(text: String, message: Message) -> Element(Message) {
-  html.button(
-    [
-      attribute.class(
-        "flex-1 p-2 m-2 border-2 rounded-sm bg-sky-500 border-sky-400",
-      ),
-      event.on_click(message),
-    ],
-    [
-      html.text(text),
-    ],
-  )
+  html.button([event.on_click(message)], [html.text(text)])
 }
 
-fn color_select_button(color: Color, class: String) -> Element(Message) {
+fn color_select_button(color: Color) -> Element(Message) {
   html.button(
     [
-      attribute.class("w-8 h-8 rounded-2xl"),
-      attribute.class(class),
+      attribute.class("color-select-button"),
       event.on_click(UserSelectedColor(color)),
+      color_class(color),
     ],
     [],
   )
@@ -204,17 +290,39 @@ fn granny_square(model: Model) -> Element(Message) {
   html.svg(
     [
       attribute.class("granny_square"),
-      attribute.attribute("viewBox", "-145 -145 290 290"),
+      attribute.attribute("viewBox", "-140 -140 280 280"),
+      color_class(model.color),
     ],
-    list.index_map(model.quadrant, square),
-  )
-}
-
-fn square(row: List(Cell), row_index: Int) -> Element(Message) {
-  svg.g(
-    [attribute.class("round-" <> int.to_string(row_index))],
-    list.index_fold(row, [], fn(acc, cell, cell_index) {
-      prepend_cell_rects(cell, cell_index, row_index, acc)
+    list.index_map(model.quadrant, fn(row, row_index) {
+      case model.focus_mode, row_index {
+        True, i if i == model.focus_round ->
+          svg.g(
+            [
+              attribute.class("focus"),
+            ],
+            list.index_fold(row, [], fn(acc, cell, cell_index) {
+              prepend_cell_rects(cell, cell_index, row_index, acc)
+            }),
+          )
+        False, _ ->
+          svg.g(
+            [
+              attribute.class("focus"),
+            ],
+            list.index_fold(row, [], fn(acc, cell, cell_index) {
+              prepend_cell_rects(cell, cell_index, row_index, acc)
+            }),
+          )
+        True, _ ->
+          svg.g(
+            [
+              attribute.class("dim"),
+            ],
+            list.index_fold(row, [], fn(acc, cell, cell_index) {
+              prepend_cell_rects(cell, cell_index, row_index, acc)
+            }),
+          )
+      }
     }),
   )
 }
@@ -246,49 +354,49 @@ fn cell_rect(
   y: Int,
   direction: CellDirection,
 ) -> Element(Message) {
-  svg.g([
+  svg.g(
+    [
       case direction {
         North -> attribute.attribute("transform", "rotate(180)")
         South -> attribute.attribute("transform", "")
         West -> attribute.attribute("transform", "rotate(90)")
         East -> attribute.attribute("transform", "rotate(270)")
       },
-  ], [
-    svg.rect([
-      attribute.attribute("x", int.to_string(x)),
-      attribute.attribute("y", int.to_string(y)),
-      attribute.attribute("rx", "4"),
-      attribute.attribute("ry", "4"),
-      attribute.width(cell_width),
-      attribute.height(cell_height),
       case cell {
-        Alive -> attribute.class("cell alive fill-slate-200")
-        Dormant -> attribute.class("cell dormant fill-red-900")
+        Alive -> attribute.class("cell alive")
+        Dormant -> attribute.class("cell dormant")
       },
-    ]),
-    svg.line([
-      attribute.attribute("x1", int.to_string(x - cell_width + 3)),
-      attribute.attribute("y1", int.to_string(y + cell_height - 3)),
-      attribute.attribute("x2", int.to_string(x + cell_width * 2 - 3)),
-      attribute.attribute("y2", int.to_string(y + cell_height - 3)),
-      attribute.attribute("stroke-width", "6"),
-      attribute.attribute("stroke-linecap", "round"),
-      case cell {
-        Alive -> attribute.class("cell alive stroke-slate-100")
-        Dormant -> attribute.class("cell dormant stroke-red-800")
-      },
-    ]),
-  ])
+    ],
+    [
+      svg.rect([
+        attribute.attribute("x", int.to_string(x)),
+        attribute.attribute("y", int.to_string(y)),
+        attribute.attribute("rx", "4"),
+        attribute.attribute("ry", "4"),
+        attribute.width(cell_width),
+        attribute.height(cell_height),
+      ]),
+      svg.line([
+        attribute.attribute("x1", int.to_string(x - cell_width + 3)),
+        attribute.attribute("y1", int.to_string(y + cell_height - 3)),
+        attribute.attribute("x2", int.to_string(x + cell_width * 2 - 3)),
+        attribute.attribute("y2", int.to_string(y + cell_height - 3)),
+        attribute.attribute("stroke-width", "6"),
+        attribute.attribute("stroke-linecap", "round"),
+      ]),
+    ],
+  )
 }
 
-fn process_generation_form(fields: List(#(String, String))) -> Message {
-  case fields {
-    [] -> UserRequestedInvalidGen
-    [#("generation", generation), ..rest] ->
-      case int.parse(generation) {
-        Ok(gen) -> UserRequestedNewGen(gen)
-        Error(Nil) -> UserRequestedInvalidGen
-      }
-    [_, ..rest] -> process_generation_form(rest)
+fn color_class(color: Color) -> Attribute(Message) {
+  case color {
+    Red -> attribute.class("red")
+    Orange -> attribute.class("orange")
+    Yellow -> attribute.class("yellow")
+    Green -> attribute.class("green")
+    Blue -> attribute.class("blue")
+    Indigo -> attribute.class("indigo")
+    Violet -> attribute.class("violet")
+    Pink -> attribute.class("pink")
   }
 }

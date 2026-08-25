@@ -148,10 +148,7 @@ pub fn color_changes(quadrant: Quadrant) -> Int {
 
 fn sum_color_changes(quadrant: Quadrant, acc: Int) -> Int {
   case quadrant {
-    [] -> acc
-    [_] -> acc
-    [[], _, ..] -> acc
-    [[_, ..], [], ..] -> acc
+    [] | [_] | [[], _, ..] | [_, [], ..] -> acc
     [[first_cell, ..] as first_row, [second_cell, ..] as second_row, ..rest] -> {
       let row_changes = sum_row_color_changes(first_row, 0) * 4
       let between_change = sum_row_color_changes([first_cell, second_cell], 0)
@@ -166,8 +163,7 @@ fn sum_color_changes(quadrant: Quadrant, acc: Int) -> Int {
 
 fn sum_row_color_changes(row: List(Cell), acc: Int) -> Int {
   case row {
-    [] -> acc
-    [_cell] -> acc
+    [] | [_] -> acc
     [Alive, Dormant as cell, ..rest] | [Dormant, Alive as cell, ..rest] ->
       sum_row_color_changes([cell, ..rest], acc + 1)
     [Dormant, Dormant as cell, ..rest] | [Alive, Alive as cell, ..rest] ->
@@ -176,9 +172,10 @@ fn sum_row_color_changes(row: List(Cell), acc: Int) -> Int {
 }
 
 /// Returns the nth generation from the current generation
+/// `n` must be a positive integer.
 pub fn nth_generation(current_gen: Quadrant, n: Int) -> Quadrant {
   case n {
-    n if n <= 0 -> current_gen
+    n if n < 1 -> current_gen
     n -> current_gen |> next_generation() |> nth_generation(n - 1)
   }
 }
@@ -193,9 +190,7 @@ fn create_next_gen(
   next_quadrant: Quadrant,
 ) -> Quadrant {
   case current_quadrant {
-    [] -> list.reverse(next_quadrant)
-    [_] -> list.reverse(next_quadrant)
-    [_first, _second] -> list.reverse(next_quadrant)
+    [] | [_] | [_, _] -> list.reverse(next_quadrant)
     [first, second, last] ->
       create_next_gen([], [
         last,
