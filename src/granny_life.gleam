@@ -46,8 +46,7 @@ type Message {
   UserClickedPreviousGen
   UserClickedPreviousRound
   UserClickedResetGen
-  UserDisabledFocusMode
-  UserEnabledFocusMode
+  UserToggledFocusMode(Bool)
   UserRequestedInvalidGen
   UserRequestedNewGen(Int)
   UserSelectedColor(Color)
@@ -78,11 +77,15 @@ fn update(model: Model, message: Message) -> Model {
     UserClickedNextGen -> next_generation(model)
     UserClickedNextRound -> next_round(model)
     UserClickedResetGen ->
-      Model(..model, focus_round: 0, generation: 0, quadrant: square.granny_life_gen_0)
+      Model(
+        ..model,
+        focus_round: 0,
+        generation: 0,
+        quadrant: square.granny_life_gen_0,
+      )
     UserClickedPreviousGen -> previous_generation(model)
     UserClickedPreviousRound -> previous_round(model)
-    UserDisabledFocusMode -> Model(..model, focus_mode: False)
-    UserEnabledFocusMode -> Model(..model, focus_mode: True)
+    UserToggledFocusMode(focus) -> Model(..model, focus_mode: focus)
     UserRequestedInvalidGen -> model
     UserRequestedNewGen(generation) -> jump_to_generation(model, generation)
     UserSelectedColor(color) -> Model(..model, color: color)
@@ -116,7 +119,7 @@ fn jump_to_generation(model: Model, generation: Int) -> Model {
     _ -> square.nth_generation(square.granny_life_gen_0, generation)
   }
 
-  Model(..model, generation: generation, quadrant: quadrant)
+  Model(..model, focus_round: 0, generation: generation, quadrant: quadrant)
 }
 
 fn next_round(model: Model) -> Model {
@@ -144,13 +147,6 @@ fn handle_generation_form_submit(fields: List(#(String, String))) -> Message {
         Error(Nil) -> UserRequestedInvalidGen
       }
     [_, ..rest] -> handle_generation_form_submit(rest)
-  }
-}
-
-fn handle_focus_mode_toggled(enabled: Bool) {
-  case enabled {
-    True -> UserEnabledFocusMode
-    False -> UserDisabledFocusMode
   }
 }
 
@@ -183,39 +179,76 @@ fn view(model: Model) -> Element(Message) {
       ]),
     ]),
     html.div([], [granny_square(model)]),
-    html.div([], [
-      html.label([attribute.attribute("for", "focus-mode")], [
-        html.text("Focus mode: "),
-      ]),
-      html.input([
-        event.on_check(handle_focus_mode_toggled),
-        attribute.attribute("type", "checkbox"),
-        attribute.name("focus-mode"),
-      ]),
+    html.div([attribute.class("color-button-container")], [
+      color_select_button(Red),
+      color_select_button(Orange),
+      color_select_button(Yellow),
+      color_select_button(Green),
+      color_select_button(Blue),
+      color_select_button(Indigo),
+      color_select_button(Violet),
+      color_select_button(Pink),
     ]),
-    case model.focus_mode {
-      True -> html.div([], [])
-      False ->
-        html.div([attribute.class("color-button-container")], [
-          color_select_button(Red),
-          color_select_button(Orange),
-          color_select_button(Yellow),
-          color_select_button(Green),
-          color_select_button(Blue),
-          color_select_button(Indigo),
-          color_select_button(Violet),
-          color_select_button(Pink),
-        ])
-    },
     case model.focus_mode {
       True -> focus_navigation(model.focus_round + 1)
       False -> generation_navigation()
     },
+    html.div([attribute.class("focus-switch")], [focus_switch(model.focus_mode)]),
     html.footer([attribute.class("p-2 m-2 text-center text-slate-500")], [
       html.text("Carefully crafted by "),
       html.a([attribute.href("https://brainofdane.com")], [html.text("Dane")]),
     ]),
   ])
+}
+
+fn focus_switch(focus_mode: Bool) -> Element(Message) {
+  html.button(
+    [
+      event.on_click(UserToggledFocusMode(!focus_mode)),
+      attribute.class("switch"),
+      attribute.attribute("type", "button"),
+      attribute.role("switch"),
+    ],
+    [
+      html.span([attribute.class("label")], [html.text("Focus")]),
+      html.svg(
+        [
+          attribute.class("toggle"),
+          attribute.attribute("viewBox", "0 0 64 32"),
+        ],
+        [
+          svg.rect([
+            attribute.class("outer-toggle"),
+            attribute.attribute("x", "0"),
+            attribute.attribute("y", "0"),
+            attribute.attribute("rx", "16"),
+            attribute.width(64),
+            attribute.height(32),
+          ]),
+          case focus_mode {
+            False ->
+              svg.circle([
+                attribute.class("inner-toggle off"),
+                attribute.attribute("cx", "16"),
+                attribute.attribute("cy", "16"),
+                attribute.attribute("r", "12"),
+                attribute.width(28),
+                attribute.height(28),
+              ])
+            True ->
+              svg.circle([
+                attribute.class("inner-toggle on"),
+                attribute.attribute("cx", "48"),
+                attribute.attribute("cy", "16"),
+                attribute.attribute("r", "12"),
+                attribute.width(28),
+                attribute.height(28),
+              ])
+          },
+        ],
+      ),
+    ],
+  )
 }
 
 fn focus_navigation(focus_round: Int) -> Element(Message) {

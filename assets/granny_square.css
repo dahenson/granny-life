@@ -38,6 +38,37 @@ h1 {
   }
 }
 
+.focus-switch {
+  display: grid;
+  margin: 1em 0;
+}
+button[role='switch'] {
+  background: var(--slate-500);
+  border: 1px solid var(--slate-300);
+  display: block;
+  padding: 0.5em;
+
+  .label {
+    position: relative;
+    display: inline-block;
+    padding: 0;
+    margin: 0 1em 0 0;
+    vertical-align: middle;
+  }
+  .toggle {
+    position: relative;
+    height: 2em;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .outer-toggle {
+    fill: var(--slate-900);
+  }
+  .inner-toggle {
+    fill: var(--silver-700);
+  }
+}
+
 .color-button-container {
   display: grid;
   margin: 1em 0;
