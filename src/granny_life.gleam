@@ -165,10 +165,21 @@ fn view(model: Model) -> Element(Message) {
     html.h1([], [html.text("Granny Life Motif Generator")]),
     html.div([], [
       html.p([], [
-        html.text("If you would like to crochet one of these granny squares, use the "),
-        html.a([attribute.href("https://www.ravelry.com/patterns/library/pixie-square")], [html.text("Pixie Square pattern (ravelry)")]),
+        html.text(
+          "If you would like to crochet one of these granny squares, use the ",
+        ),
+        html.a(
+          [
+            attribute.href(
+              "https://www.ravelry.com/patterns/library/pixie-square",
+            ),
+          ],
+          [html.text("Pixie Square pattern (ravelry)")],
+        ),
         html.text(". "),
-        html.text("Focus mode can help you keep track of the round you are working."),
+        html.text(
+          "Focus mode can help you keep track of the round you are working.",
+        ),
       ]),
     ]),
     html.div([attribute.class("stats")], [
@@ -207,7 +218,9 @@ fn view(model: Model) -> Element(Message) {
         html.text("This granny square generator is inspired by the work of "),
         html.a([attribute.href("https://mathgrrl.com")], [html.text("mathgrrl")]),
         html.text(" and the "),
-        html.a([attribute.href("https://www.grannylifecrochet.com")], [html.text("Granny Life Project")]),
+        html.a([attribute.href("https://www.grannylifecrochet.com")], [
+          html.text("Granny Life Project"),
+        ]),
         html.text("."),
       ]),
     ]),
@@ -216,7 +229,9 @@ fn view(model: Model) -> Element(Message) {
       html.a([attribute.href("https://brainofdane.com")], [html.text("Dane")]),
       html.text("."),
       html.div([], [
-        html.a([attribute.href("https://github.com/dahenson/granny_life")], [html.text("source")])
+        html.a([attribute.href("https://github.com/dahenson/granny_life")], [
+          html.text("source"),
+        ]),
       ]),
     ]),
   ])
