@@ -11,7 +11,20 @@ main {
 }
 
 h1 {
-  margin: 1em 0em;
+  margin: 0.5em 0;
+}
+
+p {
+  margin: 1em 0;
+}
+
+a {
+  color: var(--mint-500);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--mint-100);
 }
 
 .stats {

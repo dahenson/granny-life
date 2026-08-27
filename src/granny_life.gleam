@@ -64,7 +64,7 @@ type Model {
 
 fn init(_args) -> Model {
   Model(
-    color: Indigo,
+    color: Blue,
     focus_mode: False,
     focus_round: 0,
     generation: 0,
@@ -163,6 +163,14 @@ fn view(model: Model) -> Element(Message) {
 
   html.main([], [
     html.h1([], [html.text("Granny Life Motif Generator")]),
+    html.div([], [
+      html.p([], [
+        html.text("If you would like to crochet one of these granny squares, use the "),
+        html.a([attribute.href("https://www.ravelry.com/patterns/library/pixie-square")], [html.text("Pixie Square pattern (ravelry)")]),
+        html.text(". "),
+        html.text("Focus mode can help you keep track of the round you are working."),
+      ]),
+    ]),
     html.div([attribute.class("stats")], [
       stat_box("Generation", [
         html.div([attribute.class("content")], [html.text(generation)]),
@@ -194,9 +202,22 @@ fn view(model: Model) -> Element(Message) {
       False -> generation_navigation()
     },
     html.div([attribute.class("focus-switch")], [focus_switch(model.focus_mode)]),
+    html.div([], [
+      html.p([], [
+        html.text("This granny square generator is inspired by the work of "),
+        html.a([attribute.href("https://mathgrrl.com")], [html.text("mathgrrl")]),
+        html.text(" and the "),
+        html.a([attribute.href("https://www.grannylifecrochet.com")], [html.text("Granny Life Project")]),
+        html.text("."),
+      ]),
+    ]),
     html.footer([attribute.class("p-2 m-2 text-center text-slate-500")], [
       html.text("Carefully crafted by "),
       html.a([attribute.href("https://brainofdane.com")], [html.text("Dane")]),
+      html.text("."),
+      html.div([], [
+        html.a([attribute.href("https://github.com/dahenson/granny_life")], [html.text("source")])
+      ]),
     ]),
   ])
 }
