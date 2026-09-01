@@ -23,8 +23,8 @@
 ////   [Alive],
 ////   [Dormant, Dormant],
 ////   [Dormant, Alive, Dormant],
+////   [Alive, Alive, Alive, Alive],
 ////   ..
-////   [Alive, Alive, Alive ..]
 //// ]
 //// ```
 
@@ -171,12 +171,49 @@ fn sum_row_color_changes(row: List(Cell), acc: Int) -> Int {
   }
 }
 
+/// Checks if two quadrants contain the exact same cell content.
+/// If the two quadrants are different shapes, they are not equal.
+pub fn equals(quad_1: Quadrant, quad_2: Quadrant) -> Bool {
+  case quad_1, quad_2 {
+    [], [] -> True
+    [], [_, ..] | [_, ..], [] -> False
+    [row_1, ..rest_1], [row_2, ..rest_2] ->
+      case row_equals(row_1, row_2) {
+        False -> False
+        True -> equals(rest_1, rest_2)
+      }
+  }
+}
+
+fn row_equals(row_1: List(Cell), row_2: List(Cell)) -> Bool {
+  case row_1, row_2 {
+    [], [] -> True
+    [], [_, ..] | [_, ..], [] -> False
+    [cell_1, ..], [cell_2, ..] if cell_1 != cell_2 -> False
+    [_, ..rest_1], [_, ..rest_2] -> row_equals(rest_1, rest_2)
+  }
+}
+
 /// Returns the nth generation from the current generation
 /// `n` must be a positive integer.
 pub fn nth_generation(current_gen: Quadrant, n: Int) -> Quadrant {
   case n {
     n if n < 1 -> current_gen
     n -> current_gen |> next_generation() |> nth_generation(n - 1)
+  }
+}
+
+/// Given the zeroth generation of the granny life project and rule 6,
+/// the generations begin repeating at generation 1408. This function
+/// avoids long computations by jumping to a corresponding generation
+/// between 0 and 1407. This function should only be used when assuming
+/// the zeroth generation is that of the granny life project.
+pub fn nth_generation_fast(n: Int) {
+  case n {
+    n if n < 1408 -> nth_generation(granny_life_gen_0, n)
+    n -> {
+      nth_generation(granny_life_gen_0, n % 1407)
+    }
   }
 }
 

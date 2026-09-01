@@ -26,6 +26,23 @@ pub fn color_change_test() {
   assert gen |> square.nth_generation(2) |> square.color_changes() == 11
 }
 
+pub fn equals_test() {
+  let gen_5 = square.nth_generation(square.granny_life_gen_0, 5)
+
+  assert square.equals([], []) == True
+  assert square.equals([[]], [[]]) == True
+  assert square.equals(gen_5, gen_5) == True
+  assert square.equals(square.granny_life_gen_0, gen_5) == False
+}
+
+pub fn equals_different_size_test() {
+  let quad_1 = [[Alive], [Dormant, Dormant]]
+  let quad_2 = [[Alive], [Dormant, Dormant], [Alive, Dormant, Alive]]
+
+  assert square.equals(quad_1, quad_2) == False
+  assert square.equals(quad_2, quad_1) == False
+}
+
 pub fn zeroth_generation_test() {
   let gen_0 = [
     [Alive],
